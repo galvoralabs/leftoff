@@ -1,0 +1,15 @@
+{
+  "name": "leftoff",
+  "version": "0.2.0",
+  "description": "See where you left off in every project: last touched, unsaved and unpushed work, running servers, your next step, and what you did last session.",
+  "type": "module",
+  "bin": { "leftoff": "bin/leftoff.js" },
+  "files": ["bin", "src", "ui", "start-leftoff.cmd", "README.md", "LICENSE"],
+  "scripts": { "start": "node bin/leftoff.js", "test": "node --test \"test/*.test.js\"" },
+  "engines": { "node": ">=18" },
+  "keywords": ["developer-tools", "git", "context-switching", "dashboard", "cli", "local-first", "projects"],
+  "license": "MIT",
+  "author": "Galvora Labs",
+  "homepage": "https://github.com/galvoralabs/leftoff",
+  "repository": { "type": "git", "url": "git+https://github.com/galvoralabs/leftoff.git" }
+}

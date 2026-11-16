@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="leftoff-token" content="__TOKEN__">
+  <title>Leftoff</title>
+  <link rel="icon" href="/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><img src="/logo.svg" width="28" height="28" alt=""><h1>Leftoff</h1></div>
+    <input id="q" type="search" placeholder="Filter projects" aria-label="Filter projects" autocomplete="off">
+    <button id="wrap" type="button" title="Leave a next step for everything you worked on today">Wrap up day</button>
+    <button id="refresh" type="button" title="Rescan now">Rescan</button>
+    <button id="settings" type="button">Settings</button>
+  </header>
+  <div id="banner" class="banner" role="status" hidden></div>
+  <section id="welcome" class="welcome" hidden>
+    <img src="/logo.svg" width="64" height="64" alt="">
+    <h2>Welcome to Leftoff</h2>
+    <p>Pick the folder where your projects live. Leftoff finds every project inside it and shows where you left off in each one.</p>
+    <p class="muted">Everything stays on your computer. Nothing is uploaded.</p>
+    <button id="choose" type="button" class="primary">Choose your projects folder</button>
+    <p id="welcomeError" class="error" role="alert"></p>
+  </section>
+  <div id="board">
+    <nav class="filters" id="filters" aria-label="Filters"></nav>
+    <p class="meta" id="meta" role="status"></p>
+    <main id="grid" class="grid"></main>
+    <p class="empty" id="empty" hidden>No projects match.</p>
+  </div>
+  <dialog id="picker" aria-labelledby="pickerTitle"></dialog>
+  <dialog id="settingsDlg" aria-labelledby="settingsTitle"></dialog>
+  <dialog id="wrapDlg" aria-labelledby="wrapTitle"></dialog>
+  <script src="/app.js" defer></script>
+</body>
+</html>
