@@ -68,11 +68,37 @@ async function mtimeOfChanged(dir, files) {
   return newest;
 }
 
+/**
+ * How a branch relates to its remote (GitHub, etc.), using only what is already on this computer:
+ *  - tracking:         the branch is linked to a remote branch (counts come from git status)
+ *  - pushed-untracked: the branch was pushed before but is not linked; counts use the remote copy
+ *  - never-pushed:     a remote exists but this branch was never sent to it
+ *  - local-only:       the project has no remote at all
+ *  - n/a:              detached HEAD or no commits yet
+ */
+export async function remoteStatus(dir, s) {
+  const same = { upstream: s.upstream, ahead: s.ahead, behind: s.behind };
+  if (s.noCommits || !s.branch || s.branch === 'detached HEAD') return { remoteState: 'n/a', ...same };
+  if (s.upstream) return { remoteState: 'tracking', ...same };
+  const remotes = ((await run('git', ['-C', dir, 'remote'])) || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+  if (!remotes.length) return { remoteState: 'local-only', upstream: null, ahead: 0, behind: 0 };
+  const ordered = [...remotes.filter((r) => r === 'origin'), ...remotes.filter((r) => r !== 'origin')];
+  for (const remote of ordered) {
+    const ref = `refs/remotes/${remote}/${s.branch}`;
+    if ((await run('git', ['-C', dir, 'rev-parse', '--verify', '--quiet', ref])) !== null) {
+      const counts = await run('git', ['-C', dir, 'rev-list', '--left-right', '--count', `${ref}...HEAD`]);
+      const [behind, ahead] = (counts || '0\t0').trim().split(/\s+/).map(Number);
+      return { remoteState: 'pushed-untracked', upstream: `${remote}/${s.branch}`, ahead: ahead || 0, behind: behind || 0 };
+    }
+  }
+  return { remoteState: 'never-pushed', upstream: null, ahead: 0, behind: 0 };
+}
+
 /** Collect state for one project folder. Never throws. */
 export async function inspect(dir) {
   const base = {
     path: dir, name: path.basename(dir), isGit: false, branch: null, dirty: 0, ahead: 0, behind: 0,
-    upstream: null, lastCommit: null, lastCommitAt: 0, lastTouched: 0,
+    upstream: null, remoteState: null, lastCommit: null, lastCommitAt: 0, lastTouched: 0,
   };
   if (!existsSync(path.join(dir, '.git'))) {
     return { ...base, lastTouched: await newestMtime(dir) };
@@ -90,14 +116,15 @@ export async function inspect(dir) {
     lastCommitAt = Number(ts) * 1000;
     lastCommit = rest.join('\t');
   }
-  const changedAt = await mtimeOfChanged(dir, s.changed);
+  const [changedAt, remote] = await Promise.all([mtimeOfChanged(dir, s.changed), remoteStatus(dir, s)]);
   return {
     ...base,
     isGit: true,
     branch: s.branch,
-    upstream: s.upstream,
-    ahead: s.ahead,
-    behind: s.behind,
+    upstream: remote.upstream,
+    remoteState: remote.remoteState,
+    ahead: remote.ahead,
+    behind: remote.behind,
     dirty: s.changed.length,
     lastCommit,
     lastCommitAt,

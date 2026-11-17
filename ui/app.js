@@ -77,7 +77,7 @@ const FILTERS = [
   ['pinned', 'Pinned', (p) => p.pinned],
   ['running', 'Running', (p) => p.running.length > 0],
   ['dirty', 'Uncommitted', (p) => p.dirty > 0],
-  ['unpushed', 'Unpushed', (p) => p.ahead > 0 || (p.isGit && !p.upstream && p.lastCommitAt > 0)],
+  ['unpushed', 'Unpushed', (p) => p.ahead > 0 || (p.lastCommitAt > 0 && (p.remoteState === 'local-only' || p.remoteState === 'never-pushed'))],
   ['note', 'Has next step', (p) => !!p.note],
   ['stale', `Quiet ${STALE_DAYS}d+`, (p) => Date.now() - p.lastTouched > STALE_DAYS * 864e5],
   ['nogit', 'No git', (p) => !p.isGit],
@@ -97,7 +97,8 @@ function chips(p) {
     if (p.dirty) add(`${p.dirty} uncommitted`, 'warn');
     if (p.ahead) add(`${p.ahead} unpushed`, 'bad');
     if (p.behind) add(`${p.behind} behind`, 'warn');
-    if (!p.upstream && p.lastCommitAt) add('no upstream', 'warn');
+    if (p.remoteState === 'local-only') add('local only', 'warn');
+    if (p.remoteState === 'never-pushed') add('never pushed', 'bad');
     if (!p.dirty && !p.ahead && p.upstream) add('clean', 'ok');
   }
   return out;
@@ -143,7 +144,11 @@ function openWithControl(p, status) {
         state.settings.defaultApp = current;
         render();
       } }, `Use ${appName(current)} for all projects`) : null,
-      el('button', { type: 'button', onclick: () => { closeMenus(); openSettings(); } }, 'Add another app…'));
+      el('button', { type: 'button', onclick: async () => {
+        closeMenus();
+        const added = await chooseInstalledApp();
+        if (added) await open(added.id, true);
+      } }, 'Choose another app…'));
     wrapper.append(menu);
   } }, '▾');
   const wrapper = el('div', { class: 'split' }, main, caret);
@@ -153,7 +158,7 @@ function openWithControl(p, status) {
 function sessionPanel(p) {
   const box = el('div', { class: 'session', 'aria-live': 'polite' }, el('p', { class: 'muted' }, 'Looking at what you did last…'));
   const paint = (s) => {
-    const files = s.files.map((f) => el('li', {}, el('span', {}, f.path, f.state ? el('span', { class: 'tag' }, f.state === 'new' ? 'new' : 'unsaved') : null), el('span', { class: 't' }, ago(f.mtime))));
+    const files = s.files.map((f) => el('li', {}, el('span', {}, f.path, f.state ? el('span', { class: 'tag' }, f.state === 'new' ? 'new' : 'modified') : null), el('span', { class: 't' }, ago(f.mtime))));
     const commits = s.commits.map((c) => el('li', {}, el('span', {}, c.subject), el('span', { class: 't' }, ago(c.at))));
     fill(box, 
       el('p', {}, s.summary),
@@ -329,6 +334,56 @@ async function addFolder(errorEl) {
   }
 }
 
+/* ---------- choose any installed app ---------- */
+
+async function addAppFrom(exe, name) {
+  const r = await api('/api/apps', { add: { name, exe } });
+  state.apps = r.apps;
+  state.settings = r.settings;
+  return r.added;
+}
+
+/** Shows installed programs with a search box. Resolves to { id, name } of the chosen app, or null. */
+function chooseInstalledApp() {
+  return new Promise((resolve) => {
+    const dlg = $('appDlg');
+    let done = false;
+    let apps = [];
+    const finish = (value) => { done = true; dlg.close(); resolve(value); };
+    const err = el('p', { class: 'error', role: 'alert' });
+    const list = el('ul', { class: 'list' });
+    const search = el('input', { type: 'text', placeholder: 'Search apps', 'aria-label': 'Search apps' });
+    const choose = async (exe, name) => {
+      try { finish(await addAppFrom(exe, name)); } catch (e) { err.textContent = e.message; }
+    };
+    const draw = () => {
+      const q = search.value.trim().toLowerCase();
+      const shown = apps.filter((a) => !q || a.name.toLowerCase().includes(q));
+      fill(list, ...(shown.length
+        ? shown.map((a) => el('li', {}, el('button', { type: 'button', onclick: () => choose(a.exe, a.name) }, a.name)))
+        : [el('li', {}, el('button', { type: 'button', disabled: true }, apps.length ? 'No match' : 'Loading apps…'))]));
+    };
+    search.addEventListener('input', draw);
+    fill(dlg,
+      el('h2', { id: 'appTitle' }, 'Choose an app'),
+      el('p', { class: 'muted' }, 'Leftoff opens the project folder with the program you pick. Editors, terminals and file managers work best.'),
+      search, list, err,
+      el('div', { class: 'dlg-actions' },
+        el('button', { type: 'button', onclick: async () => {
+          const exe = await pick({ mode: 'file', title: 'Choose the program file' });
+          if (exe) await choose(exe, exe.split(/[\\/]/).pop().replace(/\.(exe|app)$/i, ''));
+        } }, 'Browse for a program file…'),
+        el('button', { type: 'button', onclick: () => finish(null) }, 'Cancel')));
+    dlg.addEventListener('close', () => { if (!done) resolve(null); }, { once: true });
+    dlg.showModal();
+    draw();
+    search.focus();
+    api('/api/installed')
+      .then((r) => { apps = r.apps; draw(); })
+      .catch((e) => { err.textContent = `Could not list apps: ${e.message}`; });
+  });
+}
+
 /* ---------- settings ---------- */
 
 function openSettings() {
@@ -360,11 +415,8 @@ function openSettings() {
       el('div', { class: 'field' }, el('label', {}, 'Default app'), appSel),
       custom.length ? el('ul', { class: 'items' }, ...custom) : null,
       el('div', { class: 'dlg-actions' }, el('button', { type: 'button', onclick: async () => {
-        const exe = await pick({ mode: 'file', title: 'Choose the program to add' });
-        if (!exe) return;
-        const name = exe.split(/[\\/]/).pop().replace(/\.exe$/i, '');
-        try { await api('/api/apps', { add: { name, exe } }); await refreshSettings(); } catch (e) { err.textContent = e.message; }
-      } }, 'Add an app')),
+        try { if (await chooseInstalledApp()) await refreshSettings(); } catch (e) { err.textContent = e.message; }
+      } }, 'Choose an app to add')),
       el('h3', {}, 'Evening reminder'),
       el('div', { class: 'field' }, enabled, el('label', { for: 'remOn' }, 'Remind me to leave next steps after'), hourSel),
       el('p', { class: 'muted' }, 'The reminder appears at the top of this page while it is open.'),

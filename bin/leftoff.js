@@ -63,7 +63,8 @@ function status(p) {
     if (p.dirty) bits.push(`${p.dirty} uncommitted`);
     if (p.ahead) bits.push(`${p.ahead} unpushed`);
     if (p.behind) bits.push(`${p.behind} behind`);
-    if (!p.upstream) bits.push('no upstream');
+    if (p.remoteState === 'local-only') bits.push('local only');
+    if (p.remoteState === 'never-pushed') bits.push('never pushed');
   }
   return bits.join(', ') || 'clean';
 }

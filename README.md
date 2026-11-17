@@ -6,7 +6,7 @@
 
 <p align="center"><img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/docs/demo.gif" alt="Leftoff walkthrough: filter projects, leave a next step, see your last session, choose an app, pin a project" width="860"></p>
 
-When you juggle many project folders, coming back to one after a few weeks is slow. Was anything unsaved? Did you push? Is a dev server still running? What were you about to do?
+When you juggle many project folders, coming back to one after a few weeks is slow. Was anything left uncommitted? Did you push? Is a dev server still running? What were you about to do?
 
 Leftoff shows all your projects on one board. Each card tells you:
 
@@ -55,13 +55,27 @@ Screenshots use sample projects.
 |---|---|
 | Leave yourself a reminder | Type in the box on a card. It saves when you click away. |
 | Open the project | Click **Open in VS Code** (or whichever app is your choice). The arrow beside it lists every app Leftoff found: VS Code, Cursor, Windsurf, Zed, Sublime Text, Notepad++, Windows Terminal, Git Bash, File Explorer. Pick one and it becomes that project's default. **Use X for all projects** sets it everywhere. |
-| Use an app that is not listed | Menu, **Add another app...**, then pick its program file (an .exe on Windows). |
+| Use any other app | Menu, **Choose another app...** shows the programs installed on your computer with a search box. Pick one and Leftoff opens the project with it and remembers it. **Browse for a program file...** is there if yours is missing. Editors, terminals and file managers open the folder; other programs may just start. |
 | See what you did last time | Click **Last session** on a card. |
 | Keep important projects on top | **Pin**. |
 | Declutter | **Hide** (find them again under the **Hidden** filter). |
 | Find something | Use the filter buttons (Running, Uncommitted, Unpushed, Has next step, Quiet 30d+, No git) or the search box. |
 | End the day cleanly | **Wrap up day** lists everything you touched today so you can leave a next step for each. After the reminder time (6 PM by default) a banner offers this while the page is open. Change the time or turn it off in **Settings**. |
 | Add or remove project folders | **Settings**. |
+
+### What the tags mean
+
+| Tag | Meaning |
+|---|---|
+| `N uncommitted` (orange) | You changed or added files, but have not saved them into git history with a commit. The files are on your disk; git just does not have them recorded yet. |
+| `N unpushed` (red) | You committed, but those commits are only on this computer. They have not been sent to GitHub (or another remote). |
+| `never pushed` (red) | A remote is set up, but this branch was never sent to it. |
+| `local only` (orange) | The project has no remote at all, so nothing is backed up online. |
+| `N behind` (orange) | The remote has commits you do not have yet. |
+| `clean` (green) | Everything is committed and pushed. |
+| `modified` / `new` (in Last session) | A file git already knows that you changed since the last commit / a file git has never seen. |
+
+Remote counts come from what your computer already knows, from your last push, pull or fetch. Leftoff does not contact GitHub, so if someone else pushes, `behind` only updates after you run `git fetch` or `git pull`.
 
 ### From the terminal
 

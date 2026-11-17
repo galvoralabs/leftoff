@@ -3,15 +3,16 @@ import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chooseApp, listApps, openWith, validateExe } from './apps.js';
+import { chooseApp, detectApps, listApps, openWith, validateExe } from './apps.js';
 import { browse } from './browse.js';
 import { collect } from './collect.js';
+import { installedApps } from './installed.js';
 import { lastSession } from './session.js';
 import {
   addCustomApp, addRoot, loadSettings, removeCustomApp, removeRoot, setMeta, setNote, updateSettings,
 } from './store.js';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.2.1';
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'ui');
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -83,6 +84,10 @@ export function startServer({ extraRoots = [], port = 4747, depth = 3 } = {}) {
           if (!known) return send(404, { error: 'unknown project' });
           return send(200, await lastSession(known.path));
         }
+        if (url.pathname === '/api/installed') {
+          if (!authed()) return send(403, { error: 'bad token' });
+          return send(200, { apps: await installedApps(url.searchParams.has('fresh')) });
+        }
         if (url.pathname === '/api/browse') {
           if (!authed()) return send(403, { error: 'bad token' });
           try {
@@ -122,13 +127,19 @@ export function startServer({ extraRoots = [], port = 4747, depth = 3 } = {}) {
         }
         if (url.pathname === '/api/apps') {
           if (body.remove) await removeCustomApp(body.remove);
+          let added = null;
           if (body.add) {
             const err = validateExe(body.add.exe);
             if (err) return send(400, { error: err });
-            await addCustomApp(body.add.name, body.add.exe);
+            const sameFile = (a, b) => (process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b);
+            // Reuse an app Leftoff already knows (built-in or added before) instead of creating a copy.
+            const builtIn = (await detectApps()).find((a) => a.launch.cmd && sameFile(a.launch.cmd, body.add.exe));
+            const existing = settings.apps.find((a) => sameFile(a.exe, body.add.exe));
+            const app = builtIn || existing || (await addCustomApp(body.add.name, body.add.exe));
+            added = { id: app.id, name: app.name };
           }
           const fresh = await loadSettings();
-          return send(200, { apps: await listApps(fresh), settings: fresh });
+          return send(200, { apps: await listApps(fresh), settings: fresh, added });
         }
 
         const known = await knownProject(body.path);

@@ -9,7 +9,8 @@ import test from 'node:test';
 import { validateExe } from '../src/apps.js';
 import { browse } from '../src/browse.js';
 import { collect } from '../src/collect.js';
-import { parseBranchLine, parseStatus } from '../src/git.js';
+import { inspect, parseBranchLine, parseStatus } from '../src/git.js';
+import { parseDesktopEntry, tidyEntries } from '../src/installed.js';
 import { candidatePorts, matchProject, parseLsof, parseNetstat, probe } from '../src/ports.js';
 import { findProjects } from '../src/scan.js';
 import { latestCluster, lastSession, summarize } from '../src/session.js';
@@ -28,7 +29,7 @@ const cleanup = (dir) => rm(dir, { recursive: true, force: true });
 
 function gitRepo(dir) {
   const git = (...a) => execFileSync('git', ['-C', dir, '-c', 'user.name=t', '-c', 'user.email=t@t', ...a]);
-  git('init', '-q');
+  git('init', '-q', '-b', 'main');
   return git;
 }
 
@@ -176,6 +177,94 @@ test('collect reports dirty state, notes, pins; labels generic names', async () 
   }
 });
 
+/* ---------- pushed status ---------- */
+
+test('remote status: local only, never pushed, tracked, and pushed-but-not-linked', async () => {
+  const root = await tmp();
+  try {
+    const mk = async (name) => {
+      const dir = path.join(root, name);
+      await mkdir(dir, { recursive: true });
+      const git = gitRepo(dir);
+      await writeFile(path.join(dir, 'package.json'), '{}');
+      git('add', '.');
+      git('commit', '-q', '-m', 'first');
+      return { dir, git };
+    };
+    const commit = async ({ dir, git }, msg) => {
+      await writeFile(path.join(dir, `${msg}.txt`), msg);
+      git('add', '.');
+      git('commit', '-q', '-m', msg);
+    };
+    const bare = async (name) => {
+      const p = path.join(root, `${name}.git`);
+      execFileSync('git', ['init', '-q', '--bare', '-b', 'main', p]);
+      return p;
+    };
+
+    // 1) no remote at all
+    const local = await mk('local');
+    assert.equal((await inspect(local.dir)).remoteState, 'local-only');
+
+    // 2) a remote exists, branch never sent
+    const never = await mk('never');
+    never.git('remote', 'add', 'origin', await bare('never'));
+    const n = await inspect(never.dir);
+    assert.equal(n.remoteState, 'never-pushed');
+    assert.equal(n.upstream, null);
+
+    // 3) pushed with tracking, then two more commits -> real counts
+    const tracked = await mk('tracked');
+    tracked.git('remote', 'add', 'origin', await bare('tracked'));
+    tracked.git('push', '-q', '-u', 'origin', 'main');
+    await commit(tracked, 'a');
+    await commit(tracked, 'b');
+    const t = await inspect(tracked.dir);
+    assert.equal(t.remoteState, 'tracking');
+    assert.equal(t.ahead, 2);
+
+    // 4) pushed once WITHOUT -u (not linked), then one more commit -> still counted, never "never pushed"
+    const loose = await mk('loose');
+    loose.git('remote', 'add', 'origin', await bare('loose'));
+    loose.git('push', '-q', 'origin', 'main');
+    assert.equal((await inspect(loose.dir)).ahead, 0);
+    await commit(loose, 'c');
+    const l = await inspect(loose.dir);
+    assert.equal(l.remoteState, 'pushed-untracked');
+    assert.equal(l.upstream, 'origin/main');
+    assert.equal(l.ahead, 1);
+  } finally {
+    await cleanup(root);
+  }
+});
+
+/* ---------- installed apps ---------- */
+
+test('tidyEntries drops helper shortcuts, dedupes by program and sorts', () => {
+  const win = process.platform === 'win32';
+  const exe = (n) => (win ? `C:\\Apps\\${n}.exe` : `/apps/${n}`);
+  const out = tidyEntries([
+    { name: 'Zed', exe: exe('zed') },
+    { name: 'Notepad++', exe: exe('npp') },
+    { name: 'Uninstall Notepad++', exe: exe('uninstall') },
+    { name: 'Notepad++ Readme', exe: exe('readme') },
+    { name: 'Notepad++ again', exe: exe('npp') },
+    { name: 'App Setup', exe: win ? 'C:\\Apps\\setup.exe' : '/apps/setup.exe' },
+    { name: 'alpha', exe: exe('alpha') },
+    null,
+    { name: 'no program' },
+  ]);
+  assert.deepEqual(out.map((a) => a.name), ['alpha', 'Notepad++', 'Zed']);
+});
+
+test('parseDesktopEntry reads visible apps and skips hidden ones', () => {
+  const ok = parseDesktopEntry('[Desktop Entry]\nType=Application\nName=Gedit\nExec=gedit %U\n');
+  assert.deepEqual(ok, { name: 'Gedit', command: 'gedit' });
+  assert.equal(parseDesktopEntry('[Desktop Entry]\nType=Application\nName=X\nExec=x\nNoDisplay=true\n'), null);
+  assert.equal(parseDesktopEntry('[Desktop Entry]\nType=Link\nName=X\nExec=x\n'), null);
+  assert.deepEqual(parseDesktopEntry('[Desktop Entry]\nType=Application\nName=Q\nExec="/opt/q app/q" --flag\n'), { name: 'Q', command: '/opt/q app/q' });
+});
+
 /* ---------- last session ---------- */
 
 test('latestCluster stops at a long gap; summarize describes it in plain words', () => {
@@ -195,7 +284,7 @@ test('latestCluster stops at a long gap; summarize describes it in plain words',
   assert.equal(summarize({ files: [], commits: [], start: 0, end: 0 }), 'No files found in this project yet.');
 });
 
-test('lastSession separates the latest burst from older work and flags unsaved files', async () => {
+test('lastSession separates the latest burst from older work and flags modified files', async () => {
   const root = await tmp();
   try {
     const repo = path.join(root, 'proj');
@@ -306,8 +395,18 @@ test('server: first run needs setup, folders can be added through the API, then 
     const set = await (await post(base, t, '/api/settings', { reminder: { enabled: true, hour: 20 } })).json();
     assert.equal(set.settings.reminder.hour, 20);
 
-    // custom app validation
+    // custom app validation, de-duplication, and the installed-apps list
     assert.equal((await post(base, t, '/api/apps', { add: { name: 'x', exe: 'relative' } })).status, 400);
+    const prog = path.join(root, process.platform === 'win32' ? 'myeditor.exe' : 'myeditor');
+    await writeFile(prog, '');
+    const first = await (await post(base, t, '/api/apps', { add: { name: 'My Editor', exe: prog } })).json();
+    const second = await (await post(base, t, '/api/apps', { add: { name: 'My Editor again', exe: prog } })).json();
+    assert.equal(first.added.name, 'My Editor');
+    assert.equal(second.added.id, first.added.id, 'the same program is not added twice');
+    assert.equal(second.settings.apps.length, 1);
+    assert.equal((await fetch(`${base}/api/installed`)).status, 403, 'installed list needs the token');
+    const installed = await (await fetch(`${base}/api/installed`, { headers: { 'x-leftoff-token': t } })).json();
+    assert.ok(Array.isArray(installed.apps));
   } finally {
     handle?.server.close();
     await cleanup(root);

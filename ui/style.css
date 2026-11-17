@@ -85,3 +85,4 @@ select, input[type="text"] { font: inherit; padding: 6px 8px; border: 1px solid 
 .wrap-item { margin-bottom: 14px; }
 .wrap-item label { font-weight: 600; display: block; margin-bottom: 4px; }
 @media (max-width: 560px) { .grid { grid-template-columns: 1fr; padding-inline: 16px; } .filters, .meta, .top { padding-inline: 16px; } }
+dialog input[type="text"] { width: 100%; margin-bottom: 8px; }

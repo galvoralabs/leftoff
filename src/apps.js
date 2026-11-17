@@ -84,6 +84,7 @@ export function validateExe(exe) {
   } catch {
     return 'That file does not exist.';
   }
+  if (mac && exe.toLowerCase().endsWith('.app') && stat.isDirectory()) return null;
   if (!stat.isFile()) return 'That is not a file.';
   if (win && path.extname(exe).toLowerCase() !== '.exe') return 'Choose the program itself (an .exe file), not a script.';
   return null;
@@ -96,7 +97,9 @@ export async function openWith(id, projectPath, settings) {
   let name;
   if (custom) {
     if (validateExe(custom.exe)) throw new Error(`${custom.name} was moved or removed.`);
-    launch = { cmd: custom.exe, args: (d) => [d] };
+    launch = mac && custom.exe.toLowerCase().endsWith('.app')
+      ? { cmd: 'open', args: (d) => ['-a', custom.exe, d] }
+      : { cmd: custom.exe, args: (d) => [d] };
     name = custom.name;
   } else {
     const found = (await detectApps()).find((a) => a.id === id);
