@@ -1,8 +1,10 @@
-<p align="center"><img src="ui/logo.svg" width="72" alt="Leftoff logo"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/ui/logo.svg" width="72" alt="Leftoff logo"></p>
 
 # Leftoff
 
 **See where you left off in every project.**
+
+<p align="center"><img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/docs/demo.gif" alt="Leftoff walkthrough: filter projects, leave a next step, see your last session, choose an app, pin a project" width="860"></p>
 
 When you juggle many project folders, coming back to one after a few weeks is slow. Was anything unsaved? Did you push? Is a dev server still running? What were you about to do?
 
@@ -33,6 +35,12 @@ node bin/leftoff.js
 ```
 
 The first time, Leftoff asks **"Which folder holds your projects?"** and shows a folder picker. No typing paths. It finds every project inside, remembers the folder, and next time opens straight to your board. Running it again while it is already open just brings the page back up.
+
+| The board | Last session | Choose how to open |
+|---|---|---|
+| <img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/docs/board.png" alt="The Leftoff board"> | <img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/docs/last-session.png" alt="A card with its last session open"> | <img src="https://raw.githubusercontent.com/galvoralabs/leftoff/main/docs/open-with.png" alt="The Open with menu"> |
+
+Screenshots use sample projects.
 
 ## Using the board
 
