@@ -25,13 +25,13 @@ You need [Node.js](https://nodejs.org) 18 or newer and git.
 **One line:**
 
 ```sh
-npx @galvoralabs/leftoff
+npx @galvora-labs/leftoff
 ```
 
 Or install it once and run `leftoff` any time:
 
 ```sh
-npm install -g @galvoralabs/leftoff
+npm install -g @galvora-labs/leftoff
 leftoff
 ```
 
