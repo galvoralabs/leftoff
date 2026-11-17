@@ -25,8 +25,10 @@ You need [Node.js](https://nodejs.org) 18 or newer and git.
 **One line:**
 
 ```sh
-npx @galvora-labs/leftoff
+npx @galvora-labs/leftoff@latest
 ```
+
+`@latest` makes npx fetch the newest version every time instead of reusing an old cached copy.
 
 Or install it once and run `leftoff` any time:
 
@@ -34,6 +36,10 @@ Or install it once and run `leftoff` any time:
 npm install -g @galvora-labs/leftoff
 leftoff
 ```
+
+**Updating.** With npx, just run the line above again. If you installed it globally: `npm install -g @galvora-labs/leftoff@latest` (no need to uninstall first). A copy that is already running keeps its old version until you stop it (Ctrl+C) and start it again. The board shows a small banner when a newer version is on npm.
+
+The update check asks the npm registry for the latest version number, at most once a day. Nothing about you or your projects is sent. Turn it off with `LEFTOFF_NO_UPDATE_CHECK=1`.
 
 **Or from a download**, on Windows: double-click `start-leftoff.cmd`. On any system:
 

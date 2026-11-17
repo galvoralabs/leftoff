@@ -270,6 +270,9 @@ async function load(fresh) {
     state.settings = s.settings;
     state.apps = s.apps;
     state.needsSetup = s.needsSetup;
+    state.update = s.update;
+    state.version = s.version;
+    updateNotice();
     if (!state.needsSetup) {
       const data = await api(fresh ? '/api/projects?fresh=1' : '/api/projects');
       state.projects = data.projects;
@@ -436,6 +439,16 @@ function openSettings() {
 
 const todays = () => state.projects.filter((p) => !p.hidden && p.lastTouched >= startOfToday());
 const needsNote = (p) => !p.note || p.note.updatedAt < startOfToday();
+
+function updateNotice() {
+  const b = $('updateBanner');
+  const v = state.update;
+  b.hidden = !v || store('leftoff-update-dismissed') === v;
+  if (b.hidden) return;
+  fill(b,
+    el('span', {}, `Leftoff ${v} is out (you have ${state.version}). Stop this one with Ctrl+C in its terminal, then run: npx @galvora-labs/leftoff@latest`),
+    el('button', { type: 'button', onclick: () => { store('leftoff-update-dismissed', v); updateNotice(); } }, 'Dismiss'));
+}
 
 function updateBanner() {
   const banner = $('banner');

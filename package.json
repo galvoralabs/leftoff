@@ -1,6 +1,6 @@
 {
   "name": "@galvora-labs/leftoff",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "See where you left off in every project: last touched, uncommitted and unpushed work, running servers, your next step, and what you did last session.",
   "type": "module",
   "bin": { "leftoff": "bin/leftoff.js" },

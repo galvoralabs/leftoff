@@ -13,12 +13,15 @@ import { inspect, parseBranchLine, parseStatus } from '../src/git.js';
 import { parseDesktopEntry, tidyEntries } from '../src/installed.js';
 import { candidatePorts, matchProject, parseLsof, parseNetstat, probe } from '../src/ports.js';
 import { findProjects } from '../src/scan.js';
+import { isNewer, newerVersion } from '../src/update.js';
 import { latestCluster, lastSession, summarize } from '../src/session.js';
 import { startServer } from '../src/server.js';
 import {
   addCustomApp, addRoot, loadMeta, loadRoots, loadSettings, removeCustomApp, removeRoot, setMeta, setNote, updateSettings,
 } from '../src/store.js';
 import { timeAgo } from '../src/util.js';
+
+process.env.LEFTOFF_NO_UPDATE_CHECK = '1';
 
 async function tmp() {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'leftoff-'));
@@ -114,6 +117,29 @@ test('a picked parent folder shows its projects even if it has a stray marker fi
     assert.deepEqual(solo, [path.join(root, 'one')]);
   } finally {
     await cleanup(root);
+  }
+});
+
+test('update check compares versions and uses its daily cache', async () => {
+  assert.equal(isNewer('0.2.10', '0.2.9'), true);
+  assert.equal(isNewer('0.3.0', '0.2.9'), true);
+  assert.equal(isNewer('0.2.4', '0.2.4'), false);
+  assert.equal(isNewer('0.2.3', '0.2.4'), false);
+  const home = await tmp();
+  const prev = process.env.LEFTOFF_HOME;
+  const prevOff = process.env.LEFTOFF_NO_UPDATE_CHECK;
+  try {
+    process.env.LEFTOFF_HOME = home;
+    delete process.env.LEFTOFF_NO_UPDATE_CHECK;
+    await writeFile(path.join(home, 'update.json'), JSON.stringify({ checkedAt: Date.now(), latest: '9.9.9' }));
+    assert.equal(await newerVersion('0.2.4'), '9.9.9');
+    assert.equal(await newerVersion('9.9.9'), null);
+    process.env.LEFTOFF_NO_UPDATE_CHECK = '1';
+    assert.equal(await newerVersion('0.2.4'), null);
+  } finally {
+    process.env.LEFTOFF_HOME = prev;
+    if (prevOff === undefined) delete process.env.LEFTOFF_NO_UPDATE_CHECK; else process.env.LEFTOFF_NO_UPDATE_CHECK = prevOff;
+    await cleanup(home);
   }
 });
 

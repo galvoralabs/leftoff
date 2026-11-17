@@ -8,11 +8,12 @@ import { browse } from './browse.js';
 import { collect } from './collect.js';
 import { installedApps } from './installed.js';
 import { lastSession } from './session.js';
+import { newerVersion } from './update.js';
 import {
   addCustomApp, addRoot, loadSettings, removeCustomApp, removeRoot, setMeta, setNote, updateSettings,
 } from './store.js';
 
-export const VERSION = '0.2.4';
+export const VERSION = '0.2.5';
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'ui');
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -28,6 +29,8 @@ export function startServer({ extraRoots = [], port = 4747, depth = 3 } = {}) {
   const token = randomBytes(16).toString('hex');
   let cache = { at: 0, projects: [] };
   let current = null;
+  let update = null;
+  newerVersion(VERSION).then((v) => { update = v; });
 
   const rootsNow = async () => {
     const saved = (await loadSettings()).roots;
@@ -72,7 +75,7 @@ export function startServer({ extraRoots = [], port = 4747, depth = 3 } = {}) {
         if (url.pathname === '/api/state') {
           const settings = await loadSettings();
           const roots = await rootsNow();
-          return send(200, { settings, roots, needsSetup: roots.length === 0, apps: await listApps(settings) });
+          return send(200, { settings, roots, needsSetup: roots.length === 0, apps: await listApps(settings), update, version: VERSION });
         }
         if (url.pathname === '/api/projects') {
           const list = await projects(url.searchParams.has('fresh'));
