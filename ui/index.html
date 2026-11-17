@@ -29,7 +29,10 @@
     <nav class="filters" id="filters" aria-label="Filters"></nav>
     <p class="meta" id="meta" role="status"></p>
     <main id="grid" class="grid"></main>
-    <p class="empty" id="empty" hidden>No projects match.</p>
+    <div class="empty" id="empty" hidden>
+      <p id="emptyMsg">No projects match.</p>
+      <button type="button" id="emptySettings">Open Settings to add project folders</button>
+    </div>
   </div>
   <dialog id="picker" aria-labelledby="pickerTitle"></dialog>
   <dialog id="appDlg" aria-labelledby="appTitle"></dialog>

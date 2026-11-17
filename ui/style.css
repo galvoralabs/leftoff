@@ -33,7 +33,7 @@ button:disabled { opacity: .5; cursor: default; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 24px; max-width: 1400px; margin: 0 auto; }
 .filters button[aria-pressed="true"] { background: var(--brass-bg); border-color: var(--brass); color: var(--brass); }
 .meta { margin: 0 auto; padding: 0 24px 8px; max-width: 1400px; color: var(--muted); font-size: 13px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; padding: 8px 24px 40px; max-width: 1400px; margin: 0 auto; align-items: start; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; padding: 8px 24px 40px; max-width: 1400px; margin: 0 auto; align-items: stretch; }
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card.pinned { border-color: var(--brass); }
 .card h2 { font-size: 17px; margin: 0; overflow-wrap: anywhere; }
@@ -51,6 +51,7 @@ button:disabled { opacity: .5; cursor: default; }
 .next:focus { border-style: solid; border-color: var(--brass); }
 .saved { color: var(--ok); font-size: 12px; min-height: 16px; margin: -4px 0 0; }
 .saved.bad { color: var(--bad); }
+.card > .actions.push { margin-top: auto; }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .actions button, .actions a button { font-size: 13px; padding: 5px 10px; }
 .split { display: inline-flex; position: relative; }
@@ -68,6 +69,7 @@ button:disabled { opacity: .5; cursor: default; }
 .session h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 4px 0 0; }
 .tag { font-size: 11px; padding: 0 6px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); margin-left: 6px; }
 .empty { text-align: center; color: var(--muted); padding: 40px; }
+.empty p { margin: 0 0 12px; }
 dialog { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 20px; width: min(560px, calc(100vw - 32px)); max-height: 86vh; overflow: auto; }
 dialog::backdrop { background: rgb(0 0 0 / .45); }
 dialog h2 { margin: 0 0 12px; font-size: 18px; }

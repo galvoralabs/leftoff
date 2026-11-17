@@ -232,7 +232,7 @@ function card(p) {
     el('div', { class: 'chips' }, ...chips(p)),
     p.lastCommit ? el('p', { class: 'commit' }, `Last commit: ${p.lastCommit}`) : null,
     note, status,
-    el('div', { class: 'actions' }, openWithControl(p, status), copy, ...links),
+    el('div', { class: 'actions push' }, openWithControl(p, status), copy, ...links),
     el('div', { class: 'actions' }, sessionBtn,
       el('button', { type: 'button', 'aria-pressed': String(p.pinned), onclick: () => toggle({ pinned: !p.pinned }) }, p.pinned ? 'Unpin' : 'Pin'),
       el('button', { type: 'button', onclick: () => toggle({ hidden: !p.hidden }) }, p.hidden ? 'Unhide' : 'Hide')),
@@ -253,6 +253,7 @@ function render() {
   const shown = state.projects.filter((p) => matches(state.active, test, p) && (!q || `${p.label} ${p.path} ${p.note?.next || ''}`.toLowerCase().includes(q)));
   $('grid').replaceChildren(...shown.map(card));
   $('empty').hidden = shown.length > 0;
+  $('emptyMsg').textContent = state.projects.length ? 'No projects match.' : 'No projects found yet. Add the folder that holds your projects in Settings.';
   const visible = state.projects.filter((p) => !p.hidden).length;
   $('meta').textContent = `${shown.length} shown · ${visible} projects`;
   $('filters').replaceChildren(...FILTERS.map(([id, label, fn]) => {
@@ -487,6 +488,7 @@ function openWrap() {
 $('q').addEventListener('input', render);
 $('refresh').addEventListener('click', () => load(true));
 $('settings').addEventListener('click', openSettings);
+$('emptySettings').addEventListener('click', openSettings);
 $('wrap').addEventListener('click', openWrap);
 $('choose').addEventListener('click', async () => {
   if (await addFolder($('welcomeError'))) load(true);
