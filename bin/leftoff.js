@@ -2,7 +2,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { collect } from '../src/collect.js';
-import { startServer } from '../src/server.js';
+import { startServer, VERSION } from '../src/server.js';
 import { addRoot, loadRoots, removeRoot, setNote } from '../src/store.js';
 import { timeAgo } from '../src/util.js';
 
@@ -81,7 +81,8 @@ function printTable(projects) {
 async function isLeftoff(port) {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/api/ping`, { signal: AbortSignal.timeout(1500) });
-    return (await res.json()).app === 'leftoff';
+    const body = await res.json();
+    return body.app === 'leftoff' ? body : false;
   } catch {
     return false;
   }
@@ -130,8 +131,15 @@ async function main() {
   try {
     handle = await startServer({ extraRoots: dirs, port: opts.port, depth: opts.depth });
   } catch (err) {
-    if (err.code === 'EADDRINUSE' && (await isLeftoff(opts.port))) {
+    const running = err.code === 'EADDRINUSE' ? await isLeftoff(opts.port) : false;
+    if (running) {
       const url = `http://127.0.0.1:${opts.port}/`;
+      if (running.version !== VERSION) {
+        console.log(`An older Leftoff (${running.version || 'unknown'}) is still running on port ${opts.port}, so you would see its old screen.`);
+        console.log(`Stop it first (Ctrl+C in the terminal where it is running, or close that terminal), then run leftoff again to get ${VERSION}.`);
+        console.log(`Or run the new one beside it: leftoff --port ${opts.port + 1}`);
+        return;
+      }
       console.log(`Leftoff is already running. Opening ${url}`);
       if (opts.open) openBrowser(url);
       return;
