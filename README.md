@@ -22,10 +22,17 @@ Everything stays on your computer. No account, no cloud, no telemetry.
 
 You need [Node.js](https://nodejs.org) 18 or newer and git.
 
-**One line** (once the package is published to npm):
+**One line:**
 
 ```sh
-npx leftoff
+npx @galvoralabs/leftoff
+```
+
+Or install it once and run `leftoff` any time:
+
+```sh
+npm install -g @galvoralabs/leftoff
+leftoff
 ```
 
 **Or from a download**, on Windows: double-click `start-leftoff.cmd`. On any system:

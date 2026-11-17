@@ -1,5 +1,5 @@
 {
-  "name": "leftoff",
+  "name": "@galvoralabs/leftoff",
   "version": "0.2.0",
   "description": "See where you left off in every project: last touched, unsaved and unpushed work, running servers, your next step, and what you did last session.",
   "type": "module",
@@ -9,6 +9,7 @@
   "engines": { "node": ">=18" },
   "keywords": ["developer-tools", "git", "context-switching", "dashboard", "cli", "local-first", "projects"],
   "license": "MIT",
+  "publishConfig": { "access": "public" },
   "author": "Galvora Labs",
   "homepage": "https://github.com/galvoralabs/leftoff",
   "repository": { "type": "git", "url": "git+https://github.com/galvoralabs/leftoff.git" }
