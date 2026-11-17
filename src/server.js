@@ -12,7 +12,7 @@ import {
   addCustomApp, addRoot, loadSettings, removeCustomApp, removeRoot, setMeta, setNote, updateSettings,
 } from './store.js';
 
-export const VERSION = '0.2.1';
+export const VERSION = '0.2.2';
 const UI_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'ui');
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',

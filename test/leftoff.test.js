@@ -99,6 +99,24 @@ test('findProjects detects markers, skips node_modules, does not descend into pr
   }
 });
 
+test('a picked parent folder shows its projects even if it has a stray marker file', async () => {
+  const root = await tmp();
+  try {
+    await mkdir(path.join(root, 'one'), { recursive: true });
+    await mkdir(path.join(root, 'two'), { recursive: true });
+    await writeFile(path.join(root, 'one', 'package.json'), '{}');
+    await writeFile(path.join(root, 'two', 'go.mod'), 'module two');
+    await writeFile(path.join(root, 'package.json'), '{}');
+    const found = (await findProjects(root)).map((p) => path.relative(root, p)).sort();
+    assert.deepEqual(found, ['one', 'two']);
+    // a lone project picked as a root still shows itself
+    const solo = await findProjects(path.join(root, 'one'));
+    assert.deepEqual(solo, [path.join(root, 'one')]);
+  } finally {
+    await cleanup(root);
+  }
+});
+
 /* ---------- storage ---------- */
 
 test('notes, folders, pins and reminder settings persist and clear', async () => {

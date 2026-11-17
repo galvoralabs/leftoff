@@ -12,7 +12,8 @@ const SKIP = new Set([
 /**
  * Find project folders under `root`. A folder is a project when it holds a
  * marker file. Projects are not searched further, so nested packages stay
- * part of their parent.
+ * part of their parent. A picked root that holds projects shows those
+ * projects; it only shows itself when it is a project with none inside.
  */
 export async function findProjects(root, maxDepth = 3) {
   const found = [];
@@ -23,16 +24,24 @@ export async function findProjects(root, maxDepth = 3) {
     } catch {
       return;
     }
-    if (entries.some((e) => MARKERS.has(e.name))) {
+    const isProject = entries.some((e) => MARKERS.has(e.name));
+    // A folder you picked as a root is a container first: if projects live
+    // inside it, show those instead of the folder itself.
+    if (isProject && depth > 0) {
       found.push(dir);
       return;
     }
-    if (depth >= maxDepth) return;
+    if (depth >= maxDepth) {
+      if (isProject) found.push(dir);
+      return;
+    }
+    const before = found.length;
     for (const e of entries) {
       if (!e.isDirectory() || e.isSymbolicLink()) continue;
       if (e.name.startsWith('.') || SKIP.has(e.name)) continue;
       await visit(path.join(dir, e.name), depth + 1);
     }
+    if (isProject && found.length === before) found.push(dir);
   }
   await visit(path.resolve(root), 0);
   return found;
